@@ -1,0 +1,79 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kafka-producer-configmap
+  namespace: tfg
+data:
+  sendReports.sh: |-
+    #!/bin/bash
+
+    crear_siguiente_potencia() {
+      local id=$1
+      local tipo_energia=$2
+      local ultima_potencia=$3
+
+      # si el tipo de energía es solar o eolica, varía más que si es geotérmica
+      if [ "$tipo_energia" = "Solar" ] | [ "$tipo_energia" = "Eolica" ]
+      then
+        local cambio=100
+      else
+        local cambio=20
+      fi
+      local variacion=$((RANDOM % (2 * cambio + 1) - cambio))
+      local nueva_potencia=$(($ultima_potencia + $variacion))
+
+      if [ "$nueva_potencia" -lt 0 ]
+      then
+        local nueva_potencia=10
+      fi
+
+      echo "$nueva_potencia"
+    }
+
+    while true
+    do
+      tipos_energia=("Solar" "Eolica" "Geotermica")
+      for tipo_energia in "${tipos_energia[@]}"
+      do
+        case $tipo_energia in
+          (Solar)
+            ids=(1 2 3)
+            declare -a potencias_anteriores=(
+              ['1']=1000
+              ['2']=1000
+              ['3']=1000
+            )
+            ;;
+          (Eolica) 
+            ids=(4)
+            declare -a potencias_anteriores=(
+              ['4']=800
+            )
+            ;;
+          (Geotermica)
+            ids=(5 6)
+            declare -a potencias_anteriores=(
+              ['5']=1100
+              ['6']=900
+            )
+            ;;
+          (*)   echo "No existe esa fuente de energía";;
+        esac
+
+        for id in "${ids[@]}"
+        do
+          potencia_anterior="${potencias_anteriores[$id]}"
+
+          # crear_siguiente_potencia $id $tipo_energia $potencia_anterior
+          potencia_random=$(crear_siguiente_potencia $id $tipo_energia $potencia_anterior)
+          
+          potencias_anteriores[$id]=$potencia_random
+
+          echo "INFO: PUBISHED MESSAGE: {'Id_fuente': $id, 'Tipo_fuente': '$tipo_energia', 'Potencia_recibida': $potencia_random}"
+          echo "Id_fuente:$id|Tipo_fuente:$tipo_energia|Potencia_recibida:$potencia_random" > /tmp/report.txt
+
+          kafka-console-producer.sh --broker-list $KAFKA_HOSTS --topic $TOPIC < /tmp/report.txt
+        done
+      done
+      sleep 60
+    done

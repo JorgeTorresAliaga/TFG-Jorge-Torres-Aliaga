@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kafka-consumer-configmap
+  namespace: tfg
+data:
+  getReports.sh: |-
+    #!/bin/bash
+
+    while true
+    do
+      kafka-console-consumer.sh --bootstrap-server $KAFKA_HOSTS --topic $TOPIC --max-messages 6 > /kafka/reports/reports.txt
+      echo "INFO: THIS REPORTS HAVE BEEN READ:"
+      echo $(cat /kafka/reports/reports.txt)
+      sleep 30
+    done

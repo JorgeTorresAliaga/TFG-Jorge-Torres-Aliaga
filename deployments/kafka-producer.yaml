@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kafka-producer
+  namespace: tfg
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kafka-producer
+  template:
+    metadata:
+      labels:
+        app: kafka-producer
+    spec:
+      imagePullSecrets:
+        - name: docker-registry
+      containers:
+        - name: kafka-producer
+          image: bitnami/kafka:latest
+          imagePullPolicy: Always
+          ports:
+            - name: kafka-producer
+              containerPort: 9000
+          command:
+          - sh
+          - -c
+          - "/opt/bin/sendReports.sh"
+          volumeMounts:
+          - name: send-reports
+            mountPath: /opt/bin
+          env:
+            - name: KAFKA_HOSTS
+              valueFrom:
+                configMapKeyRef:
+                  name: zookeeper-kafka-connections
+                  key: kafka-connection
+            - name: TOPIC
+              valueFrom:
+                configMapKeyRef:
+                  name: zookeeper-kafka-connections
+                  key: kafka-topic
+      securityContext:
+        runAsUser: 0
+        fsGroup: 0
+      volumes:
+        - name: send-reports
+          configMap:
+            name: kafka-producer-configmap
+            items:
+              - key: sendReports.sh
+                path: sendReports.sh
+                mode: 0755

@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql-indexer
+  namespace: tfg
+  labels:
+    app: mysql-indexer
+spec:
+  ports:
+    - port: 3306
+  selector:
+    app: mysql-indexer
+  clusterIP: None

@@ -1,0 +1,59 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kafka-consumer
+  namespace: tfg
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kafka-consumer
+  template:
+    metadata:
+      labels:
+        app: kafka-consumer
+    spec:
+      imagePullSecrets:
+        - name: docker-registry
+      containers:
+        - name: kafka-consumer
+          image: bitnami/kafka:latest
+          imagePullPolicy: Always
+          ports:
+            - name: kafka-consumer
+              containerPort: 9000
+          command:
+          - sh
+          - -c
+          - "/opt/bin/getReports.sh"
+          volumeMounts:
+          - name: get-reports
+            mountPath: /opt/bin
+          - name: reports-dir
+            mountPath: /kafka/reports
+          env:
+            - name: KAFKA_HOSTS
+              valueFrom:
+                configMapKeyRef:
+                  name: zookeeper-kafka-connections
+                  key: kafka-connection
+            - name: TOPIC
+              valueFrom:
+                configMapKeyRef:
+                  name: zookeeper-kafka-connections
+                  key: kafka-topic
+      securityContext:
+        runAsUser: 0
+        fsGroup: 0
+      volumes:
+        - name: reports-dir
+          hostPath:
+            path: /kafka/reports
+            type: Directory
+        - name: get-reports
+          configMap:
+            name: kafka-consumer-configmap
+            items:
+              - key: getReports.sh
+                path: getReports.sh
+                mode: 0755

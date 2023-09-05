@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mysql-indexer
+  namespace: tfg
+  labels:
+    app: mysql-indexer
+spec:
+  selector:
+    matchLabels:
+      app: mysql-indexer
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: mysql-indexer
+    spec:
+      containers:
+      - image: mysql:8.0
+        name: mysql
+        env:
+        - name: MYSQL_DATABASE
+          value: wordpress
+        - name: MYSQL_HOST
+          value: mysql-0.mysql.tfg.svc.cluster.local
+        - name: MYSQL_USER
+          value: root
+        - name: MYSQL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-wordpress
+              key: ROOT_PASSWORD
+        ports:
+        - containerPort: 3306
+          name: mysql
+        command:
+        - sh
+        - -c
+        - "/opt/bin/instertReportsIntoDB.sh"
+        volumeMounts:
+        - name: reports-dir
+          mountPath: /kafka/reports
+        - name: mysql-persistent-storage
+          mountPath: /var/lib/mysql
+        - name: insert-reports
+          mountPath: /opt/bin
+      volumes:
+        - name: reports-dir
+          hostPath:
+            path: /kafka/reports
+            type: Directory
+        - name: mysql-persistent-storage
+          persistentVolumeClaim:
+            claimName: mysql-pvc
+        - name: insert-reports
+          configMap:
+            name: mysql-configmap
+            items:
+              - key: instertReportsIntoDB.sh
+                path: instertReportsIntoDB.sh
+                mode: 0755

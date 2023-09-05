@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: kafka
+  namespace: tfg
+spec:
+  selector:
+    matchLabels:
+      app: kafka
+  serviceName: kafka-hs
+  replicas: 3
+  podManagementPolicy: OrderedReady
+  updateStrategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: kafka
+    spec:
+      imagePullSecrets:
+      - name: docker-registry
+      containers:
+      - name: kafka
+        imagePullPolicy: Always
+        image: bitnami/kafka:latest
+        ports:
+        - containerPort: 9092
+          name: server
+        - containerPort: 9988
+          name: jmx
+        command:
+        - sh
+        - -c
+        - "/opt/bin/startKafka.sh"
+        env:
+          - name: JMX_PORT
+            value: "9988"
+        volumeMounts:
+        - name: log-dir-general
+          mountPath: /var/lib/kafka
+        - name: kafka-config
+          mountPath: /opt/bin
+      securityContext:
+        runAsUser: 0
+        fsGroup: 0       
+      volumes:
+        - name: log-dir-general
+          hostPath:
+            path: /kafka
+            type: Directory
+        - name: kafka-config
+          configMap:
+            name: kafka-configmap
+            items:
+              - key: startKafka.sh
+                path: startKafka.sh
+                mode: 0755

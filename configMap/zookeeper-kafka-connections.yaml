@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: zookeeper-kafka-connections
+  namespace: tfg
+data:
+  zookeeper-connection: zk-0.zk-hs.tfg.svc.cluster.local,zk-1.zk-hs.tfg.svc.cluster.local,zk-2.zk-hs.tfg.svc.cluster.local
+  kafka-connection: kafka-0.kafka-hs.tfg.svc.cluster.local:9092,kafka-1.kafka-hs.tfg.svc.cluster.local:9092,kafka-2.kafka-hs.tfg.svc.cluster.local:9092
+  kafka-topic: tfg.datos.input

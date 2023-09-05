@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: zk
+  namespace: tfg
+spec:
+  selector:
+    matchLabels:
+      app: zk
+  serviceName: zk-hs
+  replicas: 3
+  updateStrategy:
+    type: RollingUpdate
+  podManagementPolicy: OrderedReady
+  template:
+    metadata:
+      labels:
+        app: zk
+    spec:
+      imagePullSecrets:
+      - name: docker-registry      
+      containers:
+      - name: zookeeper
+        imagePullPolicy: Always
+        image: bitnami/kafka:latest
+        ports:
+        - containerPort: 2181
+          name: client
+        - containerPort: 2888
+          name: server
+        - containerPort: 3888
+          name: election-port
+        command:
+        - sh
+        - -c
+        - "/opt/bin/startZookeeper.sh"
+        volumeMounts:
+        - name: datadir-general
+          mountPath: /var/lib/zookeeper
+        - name: zookeeper-config
+          mountPath: /opt/bin
+      securityContext:
+        runAsUser: 0
+        fsGroup: 0
+      volumes:
+        - name: datadir-general
+          hostPath:
+            path: /zookeeper
+            type: Directory
+        - name: zookeeper-config
+          configMap:
+            name: zookeeper-configmap
+            items:
+              - key: startZookeeper.sh
+                path: startZookeeper.sh
+                mode: 0755

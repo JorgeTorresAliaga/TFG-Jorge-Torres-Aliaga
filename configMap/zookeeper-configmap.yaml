@@ -1,0 +1,45 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: zookeeper-configmap
+  namespace: tfg
+data:
+  startZookeeper.sh: |-
+    #!/bin/bash
+
+    id=$(cat /etc/hostname | cut -d '-' -f 2)
+
+    dataDir="/var/lib/zookeeper/zk-$id/data"
+    dataLogDir="/var/lib/zookeeper/zk-$id/data/log"
+
+    propertiesDir="/opt/config"
+    propertiesFile="/opt/config/zookeeper.properties"
+
+
+    # Limpiamos (en caso de que exista) y creamos el directorio en caso de que no existan los directorios de data y logs
+    rm -rf $dataDir
+    mkdir -p $dataDir
+    rm -rf $dataLogDir
+    mkdir -p $dataLogDir
+
+    # Se crea el fichero myid
+    echo "$(($id + 1))" > $dataDir/myid
+
+    # Borramos y creamos la configuración en el fichero zookeeper.properties
+    rm -rf $propertiesDir
+    mkdir -p $propertiesDir
+    touch $propertiesFile
+
+    echo "clientPort=2181" >> $propertiesFile
+    echo "dataDir=$dataDir" >> $propertiesFile
+    echo "dataLogDir=$dataLogDir" >> $propertiesFile
+    echo "tickTime=2000" >> $propertiesFile
+    echo "maxClientCnxns=0" >> $propertiesFile
+    echo "initLimit=10" >> $propertiesFile
+    echo "syncLimit=2" >> $propertiesFile
+    echo "server.1=zk-0.zk-hs.tfg.svc.cluster.local:2888:3888" >> $propertiesFile
+    echo "server.2=zk-1.zk-hs.tfg.svc.cluster.local:2888:3888" >> $propertiesFile
+    echo "server.3=zk-2.zk-hs.tfg.svc.cluster.local:2888:3888" >> $propertiesFile
+
+    # Se ejecuta el fichero zookeeper-server-start.sh con la configuración que acabamos de crear
+    /opt/bitnami/kafka/bin/zookeeper-server-start.sh /opt/config/zookeeper.properties

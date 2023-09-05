@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kafka-manager
+  namespace: tfg
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kafka-manager
+  template:
+    metadata:
+      labels:
+        app: kafka-manager
+    spec:
+      imagePullSecrets:
+        - name: docker-registry
+      containers:
+        - name: kafka-manager
+          image: sheepkiller/kafka-manager:latest
+          imagePullPolicy: Always
+          ports:
+            - name: kafka
+              containerPort: 9000
+          env:
+            - name: ZK_HOSTS
+              valueFrom:
+                configMapKeyRef:
+                  name: zookeeper-kafka-connections
+                  key: zookeeper-connection

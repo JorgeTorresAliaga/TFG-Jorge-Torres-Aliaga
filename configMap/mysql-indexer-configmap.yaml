@@ -1,0 +1,49 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mysql-indexer-configmap
+  namespace: tfg
+data:
+  instertReportsIntoDB.sh: |-
+    #!/bin/bash
+    fichero_reportes="kafka/reports/reports.txt"
+
+    while true
+    do
+      # Se comprueba si el archivo existe
+      if [ -e "$fichero_reportes" ]; then
+        while IFS= read -r reporte
+        do
+          Id_fuente="$(echo "$reporte" | cut -d "|" -f1 | cut -d ":" -f2)"
+          Tipo_fuente="$(echo "$reporte" | cut -d "|" -f2 | cut -d ":" -f2)"
+          Potencia_recibida="$(echo "$reporte" | cut -d "|" -f3 | cut -d ":" -f2)"
+
+          SQL_INSERT="INSERT INTO potencia_generada (Id_fuente, Tipo_fuente, Potencia_recibida) VALUES ('$Id_fuente', '$Tipo_fuente', '$Potencia_recibida');"
+          echo "$SQL_INSERT" | mysql -h "$MYSQL_HOST" -u "$MYSQL_USER" -p"$MYSQL_PASSWORD" "$MYSQL_DATABASE"
+          # mysql -h "mysql.mysql.tfg.svc.cluster.local" -P "3306" -u "root" -p"root" "wordpress"
+
+          echo "INFO: INSERTED DATA INTO DB: {'Id_fuente': $Id_fuente, 'Tipo_fuente': '$Tipo_fuente', 'Potencia_recibida': $Potencia_recibida}"
+        done < "$fichero_reportes"
+        # Se elimina el fichero tras instertar los datos en la bbdd
+        echo "" > kafka/reports/reports.txt
+      else
+        sleep 5
+      fi
+    done
+
+
+
+    # archivo="kafka/reports/reports.txt"
+
+    # # Verificar si el archivo existe
+    # if [ -e "$archivo" ]; then
+    #     # Leer el archivo línea por línea e imprimirlo
+    #     while IFS= read -r linea; do
+    #         echo "$linea"
+    #     done < "$archivo"
+        
+    #     # Eliminar el archivo después de leerlo
+    #     rm "$archivo"
+    # else
+    #     echo "El archivo $archivo no existe."
+    # fi
